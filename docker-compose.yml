@@ -1,0 +1,34 @@
+version: "3.4"
+services: 
+  app:
+    image: traefikapp    
+    build:
+      context: ./app    
+    networks: 
+      - traefik-net
+    deploy:
+      replicas: 2
+      labels:
+        - "traefik.port=80"
+        - "traefik.backend=test-traefik"        
+        - "traefik.frontend.rule=Host:localhost"
+        - "traefik.backend.loadbalancer.stickiness=true"
+  gateway:
+    image: traefik:1.4
+    command: --web --docker --docker.swarmmode --docker.watch --docker.domain=gateway --loglevel=DEBUG
+    ports:
+      - "3002:80"
+      - "8082:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefik.toml
+    networks: 
+      - traefik-net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+networks: 
+  traefik-net:
+    driver: overlay    
